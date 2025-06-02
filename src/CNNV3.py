@@ -1,10 +1,13 @@
 import tensorflow as tf
 from collections import OrderedDict
 import numpy as np
+import os
+from src.analyse.CNNAnalyser import analyseModel
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras import mixed_precision
 from sklearn.utils.class_weight import compute_class_weight
 from src.analyse.CNNAnalyser import get_accuracy
+import json
 mixed_precision.set_global_policy('mixed_float16')
 
 TRAIN_DATASET_PATH = 'dataset/initial/train'
@@ -16,7 +19,7 @@ BATCH_SIZE = 16
 OUTPUT_SIZE = 1
 EPOCHS = 50
 SEED = 42
-PATIENCE = 6
+PATIENCE = 8
 LEARNING_RATE = 0.001
 AUTOTUNE = tf.data.AUTOTUNE
 
@@ -141,13 +144,13 @@ def ConvolutionalNeuralNetworkV3():
   print("5. Model creation...")
   
   model = tf.keras.Sequential([
-    tf.keras.layers.Conv2D(128, (3, 3), activation='relu', input_shape=(HEIGHT, WIDTH, 1)),
-    tf.keras.layers.MaxPooling2D((2, 2)),
-    tf.keras.layers.Conv2D(256, (3, 3), activation='relu'),
+    tf.keras.layers.Conv2D(228, (3, 3), activation='relu', input_shape=(HEIGHT, WIDTH, 1)),
     tf.keras.layers.MaxPooling2D((2, 2)),
     tf.keras.layers.Conv2D(512, (3, 3), activation='relu'),
     tf.keras.layers.MaxPooling2D((2, 2)),
     tf.keras.layers.Conv2D(1024, (3, 3), activation='relu'),
+    tf.keras.layers.MaxPooling2D((2, 2)),
+    tf.keras.layers.Conv2D(2048, (3, 3), activation='relu'),
     tf.keras.layers.MaxPooling2D((2, 2)),
     tf.keras.layers.Dropout(0.7),
     tf.keras.layers.Flatten(),
@@ -182,8 +185,23 @@ def ConvolutionalNeuralNetworkV3():
 
   accuracy = get_accuracy(y_true, y_pred)
 
+ 
   # 10. Model save with sample name
   print("10. Model save...")
-  model.save(f"./models/CNNV3/{accuracy:.4f}_CNNV3_{EPOCHS}epochs_{LEARNING_RATE}lr_{PATIENCE}patience_{SEED}seed.keras")
-  
+  MODEL_FILENAME = f"{accuracy:.4f}_CNNV3_{EPOCHS}epochs_{LEARNING_RATE}lr_{PATIENCE}patience_{SEED}seed.keras"
+  MODEL_NAME = "CNNV3"
+  ROOT = os.getcwd() 
+  MODEL_PATH = os.path.join(ROOT,"src", "models", MODEL_NAME, MODEL_FILENAME)
+  model.save(MODEL_PATH)
+  print(f"Model saved at: {MODEL_PATH}")
+  # Save history
+  history = model.history.history
+  history_path = os.path.splitext(MODEL_PATH)[0] + "_history.json" 
+  # Enregistrer l’historique dans un fichier JSON
+  with open(history_path, "w", encoding="utf-8") as f:
+      json.dump(history, f, indent=4)
 
+  # 11. Analyse du modèle
+  print("11. Model analysis...")
+  test_path  = os.path.join(ROOT, "dataset", "initial", "test")
+  analyseModel(MODEL_PATH, test_path)
