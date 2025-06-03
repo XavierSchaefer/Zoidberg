@@ -1,0 +1,5 @@
+Model,Accuracy,ROC-AUC
+LogReg,0.752,0.892
+PCA+k-NN,0.755,0.858
+SmallCNN,0.625,0.835
+ResNet18,0.897,0.955
